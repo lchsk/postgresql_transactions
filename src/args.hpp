@@ -7,6 +7,7 @@ namespace txn {
 struct Options {
     Options();
     void Parse(int argc, char** argv);
+    void Usage() const;
 
     std::string host;
     std::string user;
@@ -14,14 +15,20 @@ struct Options {
     std::string port;
     std::string db;
 
-   private:
-    const std::string args_ = "h:u:p:P:d:";
+    int test_connection;
+    int usage;
 
-    const struct option long_options[6] = {{"host", required_argument, 0, 'h'},
-                                           {"user", required_argument, 0, 'u'},
-                                           {"pass", required_argument, 0, 'p'},
-                                           {"port", required_argument, 0, 'P'},
-                                           {"db", required_argument, 0, 'd'},
-                                           {0, 0, 0, 0}};
+   private:
+    const std::string args = "H:u:p:P:d:Th";
+
+    const struct option long_options[8] = {
+        {"host", required_argument, 0, 'H'},
+        {"user", required_argument, 0, 'u'},
+        {"pass", required_argument, 0, 'p'},
+        {"port", required_argument, 0, 'P'},
+        {"db", required_argument, 0, 'd'},
+        {"test-connection", no_argument, &test_connection, 'T'},
+        {"help", no_argument, &usage, 'h'},
+        {0, 0, 0, 0}};
 };
 }  // namespace txn
