@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 
 #include "args.hpp"
 
@@ -9,8 +10,14 @@ Options::Options()
       pass("txn"),
       port("1234"),
       db("txn_db"),
+      connections(10),
+      threads(100),
       test_connection(0),
-      usage(0) {}
+      usage(0),
+      keep_schema(0),
+
+      // Task-specific
+      number_of_rows(100) {}
 
 void Options::Usage() const {
     const std::string usage =
@@ -20,9 +27,28 @@ void Options::Usage() const {
         "\t--pass postgres password\n"
         "\t--port postgres port\n"
         "\t--db postgres database\n"
-        "\t--test-connection check connection to postgres and quit\n";
+        "\n"
+        "\t--task run a particular task\n"
+        "\t--connections [int] number of connections to postgres\n"
+        "\t--threads [int] number of threads to use in a test\n"
+        "\n"
+        "\t--keep_schema don't recreate the test database schema\n"
+        "\t--test-connection check connection to postgres and quit\n"
+
+        "\tTask-specific\n"
+        "\t--rows [int] Number of rows to update in UpdateManyRows test\n"
+
+        ;
 
     std::cout << usage << std::endl;
+}
+
+const std::string Options::ConnectionString() const {
+    std::stringstream str;
+    str << "host=" << host << " port=" << port << " user=" << user
+        << " password=" << pass << " dbname=" << db;
+
+    return str.str();
 }
 
 void Options::Parse(int argc, char** argv) {
@@ -50,6 +76,18 @@ void Options::Parse(int argc, char** argv) {
                 break;
             case 'd':
                 db = optarg;
+                break;
+            case 'T':
+                task = optarg;
+                break;
+            case 'c':
+                connections = std::atoi(optarg);
+                break;
+            case 't':
+                threads = std::atoi(optarg);
+                break;
+            case 'R':
+                number_of_rows = std::atoi(optarg);
                 break;
             case 'h':
                 usage = 1;
