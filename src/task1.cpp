@@ -54,7 +54,24 @@ void Task::SelectForUpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
 
     pool->ReturnConnection(conn);
 }
+void Task::SelectForUpdateWithFK(std::shared_ptr<pqxx::connection> conn) {
+    pqxx::transaction db(*conn);
 
+    int random = rand() % 2;
+
+    if (random == 0) {
+        db.exec("select * from E for update;");
+    } else if (random == 1) {
+        try {
+            db.exec("update D set id = id + 1000;");
+        } catch (const pqxx::failure&) {
+        }
+    }
+
+    db.commit();
+
+    pool->ReturnConnection(conn);
+}
 void Task::SelectSingle(std::shared_ptr<pqxx::connection> conn) {
     pqxx::transaction db(*conn);
     db.exec("select value from B where id = 1;");
@@ -96,6 +113,7 @@ Task::Task(const Options& options) : options(options) {
     tasks["select_for_update_skip_locked"] = &Task::SelectForUpdateSkipLocked;
     tasks["select_for_update_skip_locked_many"] =
         &Task::SelectForUpdateSkipLockedMany;
+    tasks["select_for_update_with_fk"] = &Task::SelectForUpdateWithFK;
     tasks["select_single"] = &Task::SelectSingle;
     tasks["select_many"] = &Task::SelectMany;
 
@@ -114,6 +132,22 @@ void Task::SetUpData() {
         char query[100];
         sprintf(query, "insert into C (id, value) values(%d, 0)", i);
         txn.exec(query);
+        txn.commit();
+    }
+
+    for (int i = 0; i < options.number_of_rows; i++) {
+        pqxx::transaction txn(*c);
+
+        char query_1[100];
+        char query_2[100];
+
+        sprintf(query_1, "insert into D (id, value) values(%d, 0)", i);
+        sprintf(query_2, "insert into E (id, value, d_id) values(%d, 1, %d)", i,
+                i);
+
+        txn.exec(query_1);
+        txn.exec(query_2);
+
         txn.commit();
     }
 
@@ -161,6 +195,8 @@ void Task::Execute() {
     auto t_sel_for_upd_skip_many =
         timer.GetMs("select_for_update_skip_locked_many_start",
                     "select_for_update_skip_locked_many_end");
+    auto t_sel_for_upd_with_fk = timer.GetMs("select_for_update_with_fk_start",
+                                             "select_for_update_with_fk_end");
     auto t_sel_single = timer.GetMs("select_single_start", "select_single_end");
     auto t_sel_many = timer.GetMs("select_many_start", "select_many_end");
 
@@ -183,6 +219,8 @@ void Task::Execute() {
               << " ms" << std::endl;
     std::cout << "Select for update many rows skip locked: "
               << t_sel_for_upd_skip_many << " ms" << std::endl;
+    std::cout << "Select for update with foreign key: " << t_sel_for_upd_with_fk
+              << " ms" << std::endl;
     std::cout << "Select single row: " << t_sel_single << " ms" << std::endl;
     std::cout << "Select many rows: " << t_sel_many << " ms" << std::endl;
 }

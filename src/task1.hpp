@@ -24,6 +24,7 @@ struct Task {
     void SelectForUpdateManyRows(std::shared_ptr<pqxx::connection> conn);
     void SelectForUpdateSkipLocked(std::shared_ptr<pqxx::connection> conn);
     void SelectForUpdateSkipLockedMany(std::shared_ptr<pqxx::connection> conn);
+    void SelectForUpdateWithFK(std::shared_ptr<pqxx::connection> conn);
 
     void SelectSingle(std::shared_ptr<pqxx::connection> conn);
     void SelectMany(std::shared_ptr<pqxx::connection> conn);
