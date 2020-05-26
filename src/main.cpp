@@ -51,7 +51,8 @@ int main(int argc, char** argv) {
 
     std::cout << "Connections: " << options.connections << std::endl;
     std::cout << "Threads: " << options.threads << std::endl;
-    std::cout << "Number of rows: " << options.number_of_rows << std::endl;
+    std::cout << "Number of rows: " << options.number_of_rows << std::endl
+              << std::endl;
 
     Task t(options);
     t.Execute();

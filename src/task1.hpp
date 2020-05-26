@@ -1,4 +1,5 @@
 #include <mutex>
+#include <unordered_map>
 
 #include <pqxx/pqxx>
 
@@ -25,6 +26,11 @@ struct Task {
     void SetUpData();
 
     std::unique_ptr<ConnectionPool> pool;
+
+    std::unordered_map<
+        std::string,
+        std::function<void(Task&, std::shared_ptr<pqxx::connection>)> >
+        tasks;
 
     const Options& options;
     std::mutex mutex;

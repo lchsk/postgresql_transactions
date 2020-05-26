@@ -1,3 +1,4 @@
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -69,6 +70,15 @@ void Task::UpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
 Task::Task(const Options& options) : options(options) {
     pool = std::make_unique<ConnectionPool>(options.connections,
                                             options.ConnectionString());
+
+    tasks["simple_insert"] = &Task::SimpleInsert;
+    tasks["update_single_row"] = &Task::UpdateSingleRow;
+    tasks["update_many_rows"] = &Task::UpdateManyRows;
+    tasks["select_for_update_single_row"] = &Task::SelectForUpdateSingleRow;
+    tasks["select_for_update_many_rows"] = &Task::SelectForUpdateManyRows;
+    tasks["select_single"] = &Task::SelectSingle;
+    tasks["select_many"] = &Task::SelectMany;
+
     SetUpData();
 }
 
@@ -93,143 +103,39 @@ void Task::SetUpData() {
 void Task::Execute() {
     std::vector<std::thread> threads(options.threads);
 
-    timer.Record("0");
+    for (auto& [name, func] : tasks) {
+        std::cout << "Running " << name << std::endl;
+        timer.Record(name + "_start");
 
-    // Simple insert
+        for (int i = 0; i < options.threads;) {
+            if (pool->IsAvailable()) {
+                auto c = pool->GetConnection();
+                threads[i] = std::thread(func, std::ref(*this), c);
 
-    for (int i = 0; i < options.threads;) {
-        if (pool->IsAvailable()) {
-            auto c = pool->GetConnection();
-
-            threads[i] = std::thread(&Task::SimpleInsert, this, c);
-
-            i++;
+                i++;
+            }
         }
-    }
 
-    for (int i = 0; i < options.threads; i++) {
-        threads[i].join();
-    }
-
-    timer.Record("1");
-
-    // Update single row
-
-    for (int i = 0; i < options.threads;) {
-        if (pool->IsAvailable()) {
-            auto c = pool->GetConnection();
-
-            threads[i] = std::thread(&Task::UpdateSingleRow, this, c);
-
-            i++;
+        for (int i = 0; i < options.threads; i++) {
+            threads[i].join();
         }
+
+        timer.Record(name + "_end");
     }
-
-    for (int i = 0; i < options.threads; i++) {
-        threads[i].join();
-    }
-
-    timer.Record("2");
-
-    // Update many rows
-
-    for (int i = 0; i < options.threads;) {
-        if (pool->IsAvailable()) {
-            auto c = pool->GetConnection();
-
-            threads[i] = std::thread(&Task::UpdateManyRows, this, c);
-
-            i++;
-        }
-    }
-
-    for (int i = 0; i < options.threads; i++) {
-        threads[i].join();
-    }
-
-    timer.Record("3");
-
-    // Select for update single row
-
-    for (int i = 0; i < options.threads;) {
-        if (pool->IsAvailable()) {
-            auto c = pool->GetConnection();
-
-            threads[i] = std::thread(&Task::SelectForUpdateSingleRow, this, c);
-
-            i++;
-        }
-    }
-
-    for (int i = 0; i < options.threads; i++) {
-        threads[i].join();
-    }
-
-    timer.Record("4");
-
-    // Select for update many rows
-
-    for (int i = 0; i < options.threads;) {
-        if (pool->IsAvailable()) {
-            auto c = pool->GetConnection();
-
-            threads[i] = std::thread(&Task::SelectForUpdateManyRows, this, c);
-
-            i++;
-        }
-    }
-
-    for (int i = 0; i < options.threads; i++) {
-        threads[i].join();
-    }
-
-    timer.Record("5");
-
-    // Select single
-
-    for (int i = 0; i < options.threads;) {
-        if (pool->IsAvailable()) {
-            auto c = pool->GetConnection();
-
-            threads[i] = std::thread(&Task::SelectSingle, this, c);
-
-            i++;
-        }
-    }
-
-    for (int i = 0; i < options.threads; i++) {
-        threads[i].join();
-    }
-
-    timer.Record("6");
-
-    // Select many
-
-    for (int i = 0; i < options.threads;) {
-        if (pool->IsAvailable()) {
-            auto c = pool->GetConnection();
-
-            threads[i] = std::thread(&Task::SelectMany, this, c);
-
-            i++;
-        }
-    }
-
-    for (int i = 0; i < options.threads; i++) {
-        threads[i].join();
-    }
-
-    timer.Record("7");
 
     // Get summary
 
-    auto time_task_1 = timer.GetMs("0", "1");
-    auto time_task_2 = timer.GetMs("1", "2");
-    auto time_task_3 = timer.GetMs("2", "3");
-    auto time_task_4 = timer.GetMs("3", "4");
-    auto time_task_5 = timer.GetMs("4", "5");
-    auto time_task_6 = timer.GetMs("5", "6");
-    auto time_task_7 = timer.GetMs("6", "7");
+    auto time_task_1 = timer.GetMs("simple_insert_start", "simple_insert_end");
+    auto time_task_2 =
+        timer.GetMs("update_single_row_start", "update_single_row_end");
+    auto time_task_3 =
+        timer.GetMs("update_many_rows_start", "update_many_rows_end");
+    auto time_task_4 = timer.GetMs("select_for_update_single_row_start",
+                                   "select_for_update_single_row_end");
+    auto time_task_5 = timer.GetMs("select_for_update_many_rows_start",
+                                   "select_for_update_many_rows_end");
+    auto time_task_6 = timer.GetMs("select_single_start", "select_single_end");
+    auto time_task_7 = timer.GetMs("select_many_start", "select_many_end");
 
     std::cout << "\n";
 
