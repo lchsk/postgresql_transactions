@@ -1,5 +1,5 @@
-#include <stack>
 #include <mutex>
+#include <stack>
 
 #include <pqxx/pqxx>
 
@@ -22,4 +22,4 @@ class ConnectionPool {
     std::stack<std::shared_ptr<pqxx::connection>> pool;
     std::mutex mutex;
 };
-}
+}  // namespace txn

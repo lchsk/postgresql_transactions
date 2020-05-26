@@ -1,6 +1,6 @@
 #include <iostream>
-#include <thread>
 #include <memory>
+#include <thread>
 
 #include "task1.hpp"
 
@@ -16,6 +16,38 @@ void Task::SimpleInsert(std::shared_ptr<pqxx::connection> conn) {
 void Task::UpdateSingleRow(std::shared_ptr<pqxx::connection> conn) {
     pqxx::transaction db(*conn);
     db.exec("update B set value = value + 1 where id = 1");
+    db.commit();
+
+    pool->ReturnConnection(conn);
+}
+
+void Task::SelectForUpdateSingleRow(std::shared_ptr<pqxx::connection> conn) {
+    pqxx::transaction db(*conn);
+    db.exec("select value from B where id = 1 for update;");
+    db.commit();
+
+    pool->ReturnConnection(conn);
+}
+
+void Task::SelectForUpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
+    pqxx::transaction db(*conn);
+    db.exec("select value from B for update;");
+    db.commit();
+
+    pool->ReturnConnection(conn);
+}
+
+void Task::SelectSingle(std::shared_ptr<pqxx::connection> conn) {
+    pqxx::transaction db(*conn);
+    db.exec("select value from B where id = 1;");
+    db.commit();
+
+    pool->ReturnConnection(conn);
+}
+
+void Task::SelectMany(std::shared_ptr<pqxx::connection> conn) {
+    pqxx::transaction db(*conn);
+    db.exec("select value from B where id = 1;");
     db.commit();
 
     pool->ReturnConnection(conn);
@@ -63,6 +95,8 @@ void Task::Execute() {
 
     timer.Record("0");
 
+    // Simple insert
+
     for (int i = 0; i < options.threads;) {
         if (pool->IsAvailable()) {
             auto c = pool->GetConnection();
@@ -78,6 +112,8 @@ void Task::Execute() {
     }
 
     timer.Record("1");
+
+    // Update single row
 
     for (int i = 0; i < options.threads;) {
         if (pool->IsAvailable()) {
@@ -95,6 +131,8 @@ void Task::Execute() {
 
     timer.Record("2");
 
+    // Update many rows
+
     for (int i = 0; i < options.threads;) {
         if (pool->IsAvailable()) {
             auto c = pool->GetConnection();
@@ -111,9 +149,87 @@ void Task::Execute() {
 
     timer.Record("3");
 
+    // Select for update single row
+
+    for (int i = 0; i < options.threads;) {
+        if (pool->IsAvailable()) {
+            auto c = pool->GetConnection();
+
+            threads[i] = std::thread(&Task::SelectForUpdateSingleRow, this, c);
+
+            i++;
+        }
+    }
+
+    for (int i = 0; i < options.threads; i++) {
+        threads[i].join();
+    }
+
+    timer.Record("4");
+
+    // Select for update many rows
+
+    for (int i = 0; i < options.threads;) {
+        if (pool->IsAvailable()) {
+            auto c = pool->GetConnection();
+
+            threads[i] = std::thread(&Task::SelectForUpdateManyRows, this, c);
+
+            i++;
+        }
+    }
+
+    for (int i = 0; i < options.threads; i++) {
+        threads[i].join();
+    }
+
+    timer.Record("5");
+
+    // Select single
+
+    for (int i = 0; i < options.threads;) {
+        if (pool->IsAvailable()) {
+            auto c = pool->GetConnection();
+
+            threads[i] = std::thread(&Task::SelectSingle, this, c);
+
+            i++;
+        }
+    }
+
+    for (int i = 0; i < options.threads; i++) {
+        threads[i].join();
+    }
+
+    timer.Record("6");
+
+    // Select many
+
+    for (int i = 0; i < options.threads;) {
+        if (pool->IsAvailable()) {
+            auto c = pool->GetConnection();
+
+            threads[i] = std::thread(&Task::SelectMany, this, c);
+
+            i++;
+        }
+    }
+
+    for (int i = 0; i < options.threads; i++) {
+        threads[i].join();
+    }
+
+    timer.Record("7");
+
+    // Get summary
+
     auto time_task_1 = timer.GetMs("0", "1");
     auto time_task_2 = timer.GetMs("1", "2");
     auto time_task_3 = timer.GetMs("2", "3");
+    auto time_task_4 = timer.GetMs("3", "4");
+    auto time_task_5 = timer.GetMs("4", "5");
+    auto time_task_6 = timer.GetMs("5", "6");
+    auto time_task_7 = timer.GetMs("6", "7");
 
     std::cout << "\n";
 
@@ -123,5 +239,12 @@ void Task::Execute() {
               << std::endl;
 
     std::cout << "Many rows update time: " << time_task_3 << " ms" << std::endl;
+
+    std::cout << "Select for update single row: " << time_task_4 << " ms"
+              << std::endl;
+    std::cout << "Select for update many rows: " << time_task_5 << " ms"
+              << std::endl;
+    std::cout << "Select single row: " << time_task_6 << " ms" << std::endl;
+    std::cout << "Select many rows: " << time_task_7 << " ms" << std::endl;
 }
-}
+}  // namespace txn

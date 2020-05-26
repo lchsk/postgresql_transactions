@@ -12,4 +12,4 @@ long int Timer::GetMs(const std::string& before,
                timings.at(after) - timings.at(before))
         .count();
 }
-}
+}  // namespace txn

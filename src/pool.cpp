@@ -33,4 +33,4 @@ std::shared_ptr<pqxx::connection> ConnectionPool::GetConnection() {
 
     return c;
 }
-}
+}  // namespace txn

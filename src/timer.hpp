@@ -1,6 +1,6 @@
 #include <chrono>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 #pragma once
 
@@ -12,7 +12,7 @@ struct Timer {
     void Record(const std::string& name);
     long int GetMs(const std::string&, const std::string&) const;
 
-private:
+   private:
     std::unordered_map<std::string, TimePoint> timings;
 };
-}
+}  // namespace txn
