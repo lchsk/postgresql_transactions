@@ -30,6 +30,23 @@ void Task::SelectForUpdateSingleRow(std::shared_ptr<pqxx::connection> conn) {
     pool->ReturnConnection(conn);
 }
 
+void Task::SelectForUpdateSkipLocked(std::shared_ptr<pqxx::connection> conn) {
+    pqxx::transaction db(*conn);
+    db.exec("select value from C limit 1 for update skip locked;");
+    db.commit();
+
+    pool->ReturnConnection(conn);
+}
+
+void Task::SelectForUpdateSkipLockedMany(
+    std::shared_ptr<pqxx::connection> conn) {
+    pqxx::transaction db(*conn);
+    db.exec("select value from C limit 10 for update skip locked;");
+    db.commit();
+
+    pool->ReturnConnection(conn);
+}
+
 void Task::SelectForUpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
     pqxx::transaction db(*conn);
     db.exec("select value from B for update;");
@@ -76,6 +93,9 @@ Task::Task(const Options& options) : options(options) {
     tasks["update_many_rows"] = &Task::UpdateManyRows;
     tasks["select_for_update_single_row"] = &Task::SelectForUpdateSingleRow;
     tasks["select_for_update_many_rows"] = &Task::SelectForUpdateManyRows;
+    tasks["select_for_update_skip_locked"] = &Task::SelectForUpdateSkipLocked;
+    tasks["select_for_update_skip_locked_many"] =
+        &Task::SelectForUpdateSkipLockedMany;
     tasks["select_single"] = &Task::SelectSingle;
     tasks["select_many"] = &Task::SelectMany;
 
@@ -86,7 +106,7 @@ void Task::SetUpData() {
     auto c = pool->GetConnection();
 
     pqxx::transaction txn(*c);
-    txn.exec("insert into B (id, value, notes) values(1, 0, 'b')");
+    txn.exec("insert into B (id, value) values(1, 0)");
     txn.commit();
 
     for (int i = 0; i < options.number_of_rows; i++) {
@@ -125,32 +145,45 @@ void Task::Execute() {
 
     // Get summary
 
-    auto time_task_1 = timer.GetMs("simple_insert_start", "simple_insert_end");
-    auto time_task_2 =
+    auto t_simple_insert =
+        timer.GetMs("simple_insert_start", "simple_insert_end");
+    auto t_update_single_row =
         timer.GetMs("update_single_row_start", "update_single_row_end");
-    auto time_task_3 =
+    auto t_update_many_rows =
         timer.GetMs("update_many_rows_start", "update_many_rows_end");
-    auto time_task_4 = timer.GetMs("select_for_update_single_row_start",
-                                   "select_for_update_single_row_end");
-    auto time_task_5 = timer.GetMs("select_for_update_many_rows_start",
-                                   "select_for_update_many_rows_end");
-    auto time_task_6 = timer.GetMs("select_single_start", "select_single_end");
-    auto time_task_7 = timer.GetMs("select_many_start", "select_many_end");
+    auto t_sel_for_upd_single =
+        timer.GetMs("select_for_update_single_row_start",
+                    "select_for_update_single_row_end");
+    auto t_sel_for_upd_many = timer.GetMs("select_for_update_many_rows_start",
+                                          "select_for_update_many_rows_end");
+    auto t_sel_for_upd_skip = timer.GetMs("select_for_update_skip_locked_start",
+                                          "select_for_update_skip_locked_end");
+    auto t_sel_for_upd_skip_many =
+        timer.GetMs("select_for_update_skip_locked_many_start",
+                    "select_for_update_skip_locked_many_end");
+    auto t_sel_single = timer.GetMs("select_single_start", "select_single_end");
+    auto t_sel_many = timer.GetMs("select_many_start", "select_many_end");
 
     std::cout << "\n";
 
-    std::cout << "Simple insert time: " << time_task_1 << " ms" << std::endl;
-
-    std::cout << "Single row update time: " << time_task_2 << " ms"
+    std::cout << "Simple insert time: " << t_simple_insert << " ms"
               << std::endl;
 
-    std::cout << "Many rows update time: " << time_task_3 << " ms" << std::endl;
+    std::cout << "Single row update time: " << t_update_single_row << " ms"
+              << std::endl;
 
-    std::cout << "Select for update single row: " << time_task_4 << " ms"
+    std::cout << "Many rows update time: " << t_update_many_rows << " ms"
               << std::endl;
-    std::cout << "Select for update many rows: " << time_task_5 << " ms"
+
+    std::cout << "Select for update single row: " << t_sel_for_upd_single
+              << " ms" << std::endl;
+    std::cout << "Select for update many rows: " << t_sel_for_upd_many << " ms"
               << std::endl;
-    std::cout << "Select single row: " << time_task_6 << " ms" << std::endl;
-    std::cout << "Select many rows: " << time_task_7 << " ms" << std::endl;
+    std::cout << "Select for update skip locked: " << t_sel_for_upd_skip
+              << " ms" << std::endl;
+    std::cout << "Select for update many rows skip locked: "
+              << t_sel_for_upd_skip_many << " ms" << std::endl;
+    std::cout << "Select single row: " << t_sel_single << " ms" << std::endl;
+    std::cout << "Select many rows: " << t_sel_many << " ms" << std::endl;
 }
 }  // namespace txn

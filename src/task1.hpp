@@ -16,10 +16,15 @@ struct Task {
 
    private:
     void SimpleInsert(std::shared_ptr<pqxx::connection> conn);
+
     void UpdateSingleRow(std::shared_ptr<pqxx::connection> conn);
     void UpdateManyRows(std::shared_ptr<pqxx::connection> conn);
+
     void SelectForUpdateSingleRow(std::shared_ptr<pqxx::connection> conn);
     void SelectForUpdateManyRows(std::shared_ptr<pqxx::connection> conn);
+    void SelectForUpdateSkipLocked(std::shared_ptr<pqxx::connection> conn);
+    void SelectForUpdateSkipLockedMany(std::shared_ptr<pqxx::connection> conn);
+
     void SelectSingle(std::shared_ptr<pqxx::connection> conn);
     void SelectMany(std::shared_ptr<pqxx::connection> conn);
 
