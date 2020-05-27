@@ -7,7 +7,7 @@
 
 namespace txn {
 void Task::SimpleInsert(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    pqxx::transaction<isolation> db(*conn);
     db.exec("insert into A (id) values(1)");
     db.commit();
 
@@ -15,15 +15,30 @@ void Task::SimpleInsert(std::shared_ptr<pqxx::connection> conn) {
 }
 
 void Task::UpdateSingleRow(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
-    db.exec("update B set value = value + 1 where id = 1");
-    db.commit();
+    // Retry transaction if it fails due to serialization failures
+    // at higher isolation levels.
+    const int attempts = 5;
+
+    for (int i = 0; i < attempts; i++) {
+        pqxx::transaction<isolation> db(*conn);
+        try {
+            db.exec("update B set value = value + 1 where id = 1");
+            db.commit();
+            break;
+        } catch (const pqxx::serialization_failure&) {
+            continue;
+        } catch (const pqxx::failure& e) {
+            std::cout << "update_single_row fail" << e.what() << std::endl;
+            db.abort();
+            break;
+        }
+    }
 
     pool->ReturnConnection(conn);
 }
 
 void Task::SelectForUpdateSingleRow(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    pqxx::transaction<isolation> db(*conn);
     db.exec("select value from B where id = 1 for update;");
     db.commit();
 
@@ -31,7 +46,7 @@ void Task::SelectForUpdateSingleRow(std::shared_ptr<pqxx::connection> conn) {
 }
 
 void Task::SelectForUpdateSkipLocked(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    pqxx::transaction<isolation> db(*conn);
     db.exec("select value from C limit 1 for update skip locked;");
     db.commit();
 
@@ -40,7 +55,7 @@ void Task::SelectForUpdateSkipLocked(std::shared_ptr<pqxx::connection> conn) {
 
 void Task::SelectForUpdateSkipLockedMany(
     std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    pqxx::transaction<isolation> db(*conn);
     db.exec("select value from C limit 10 for update skip locked;");
     db.commit();
 
@@ -48,16 +63,16 @@ void Task::SelectForUpdateSkipLockedMany(
 }
 
 void Task::SelectForUpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    pqxx::transaction<isolation> db(*conn);
     db.exec("select value from B for update;");
     db.commit();
 
     pool->ReturnConnection(conn);
 }
 void Task::SelectForUpdateWithFK(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    const int random = rand() % 2;
 
-    int random = rand() % 2;
+    pqxx::transaction<isolation> db(*conn);
 
     if (random == 0) {
         db.exec("select * from E for update;");
@@ -73,7 +88,7 @@ void Task::SelectForUpdateWithFK(std::shared_ptr<pqxx::connection> conn) {
     pool->ReturnConnection(conn);
 }
 void Task::SelectSingle(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    pqxx::transaction<isolation> db(*conn);
     db.exec("select value from B where id = 1;");
     db.commit();
 
@@ -81,7 +96,7 @@ void Task::SelectSingle(std::shared_ptr<pqxx::connection> conn) {
 }
 
 void Task::SelectMany(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    pqxx::transaction<isolation> db(*conn);
     db.exec("select value from B where id = 1;");
     db.commit();
 
@@ -89,19 +104,35 @@ void Task::SelectMany(std::shared_ptr<pqxx::connection> conn) {
 }
 
 void Task::UpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
-    pqxx::transaction db(*conn);
+    const int random = rand() % options.number_of_rows;
+
     char query[100];
-
-    int random = rand() % options.number_of_rows;
-
     sprintf(query, "update C set value = value + 1 where id = %d", random);
-    db.exec(query);
-    db.commit();
+
+    // Retry transaction if it fails due to serialization failures
+    // at higher isolation levels.
+    const int attempts = 5;
+
+    for (int i = 0; i < attempts; i++) {
+        pqxx::transaction<isolation> db(*conn);
+        try {
+            db.exec(query);
+            db.commit();
+            break;
+        } catch (const pqxx::serialization_failure&) {
+            continue;
+        } catch (const pqxx::failure& e) {
+            std::cout << "update_many_rows fail" << e.what() << std::endl;
+            db.abort();
+            break;
+        }
+    }
 
     pool->ReturnConnection(conn);
 }
 
-Task::Task(const Options& options) : options(options) {
+Task::Task(const Options& options) : options(options) {}
+void Task::SetUp() {
     pool = std::make_unique<ConnectionPool>(options.connections,
                                             options.ConnectionString());
 
@@ -124,7 +155,10 @@ void Task::SetUpData() {
     auto c = pool->GetConnection();
 
     pqxx::transaction txn(*c);
-    txn.exec("insert into B (id, value) values(1, 0)");
+    txn.exec("insert into B (id, value, notes) values(1, 100, 'a')");
+    txn.exec("insert into B (id, value, notes) values(2, 200, 'a')");
+    txn.exec("insert into B (id, value, notes) values(3, 300, 'b')");
+    txn.exec("insert into B (id, value, notes) values(4, 400, 'b')");
     txn.commit();
 
     for (int i = 0; i < options.number_of_rows; i++) {

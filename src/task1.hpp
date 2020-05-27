@@ -13,6 +13,20 @@ namespace txn {
 struct Task {
     Task(const Options& options);
     void Execute();
+    void SetUp();
+
+    std::string GetIsolationLevel() const {
+        switch (isolation) {
+            case 0:
+                return "read_committed";
+            case 1:
+                return "repeatable_read";
+            case 2:
+                return "serializable";
+        };
+
+        return "unknown";
+    }
 
    private:
     void SimpleInsert(std::shared_ptr<pqxx::connection> conn);
@@ -30,6 +44,9 @@ struct Task {
     void SelectMany(std::shared_ptr<pqxx::connection> conn);
 
     void SetUpData();
+
+    const static pqxx::isolation_level isolation =
+        pqxx::isolation_level::serializable;
 
     std::unique_ptr<ConnectionPool> pool;
 
