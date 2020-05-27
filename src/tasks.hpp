@@ -14,6 +14,7 @@ struct Task {
     Task(const Options& options);
     void Execute();
     void SetUp();
+    void PrintAvgTimings() const;
 
     std::string GetIsolationLevel() const {
         switch (isolation) {
@@ -46,9 +47,11 @@ struct Task {
     void SetUpData();
 
     const static pqxx::isolation_level isolation =
-        pqxx::isolation_level::serializable;
+        pqxx::isolation_level::read_committed;
 
     std::unique_ptr<ConnectionPool> pool;
+
+    std::unordered_map<std::string, long int> avg_timings;
 
     std::unordered_map<
         std::string,

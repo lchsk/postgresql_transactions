@@ -20,6 +20,8 @@ struct Options {
     int connections;
     int threads;
 
+    int repetitions;
+
     int test_connection;
     int usage;
     int keep_schema;
@@ -28,9 +30,9 @@ struct Options {
     int number_of_rows;
 
    private:
-    const std::string args = "H:u:p:P:d:T:c:t:R:ThK";
+    const std::string args = "H:u:p:P:d:T:c:t:R:r:ThK";
 
-    const struct option long_options[13] = {
+    const struct option long_options[14] = {
         {"host", required_argument, 0, 'H'},
         {"user", required_argument, 0, 'u'},
         {"pass", required_argument, 0, 'p'},
@@ -39,6 +41,7 @@ struct Options {
         {"task", required_argument, 0, 'T'},
         {"connections", required_argument, 0, 'c'},
         {"threads", required_argument, 0, 't'},
+        {"repetitions", required_argument, 0, 'r'},
         {"test-connection", no_argument, &test_connection, 'E'},
         {"help", no_argument, &usage, 'h'},
         {"keep-schema", no_argument, &keep_schema, 'K'},

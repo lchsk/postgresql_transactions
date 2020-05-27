@@ -131,11 +131,7 @@ void Task::UpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
     pool->ReturnConnection(conn);
 }
 
-Task::Task(const Options& options) : options(options) {}
-void Task::SetUp() {
-    pool = std::make_unique<ConnectionPool>(options.connections,
-                                            options.ConnectionString());
-
+Task::Task(const Options& options) : options(options) {
     tasks["simple_insert"] = &Task::SimpleInsert;
     tasks["update_single_row"] = &Task::UpdateSingleRow;
     tasks["update_many_rows"] = &Task::UpdateManyRows;
@@ -147,6 +143,14 @@ void Task::SetUp() {
     tasks["select_for_update_with_fk"] = &Task::SelectForUpdateWithFK;
     tasks["select_single"] = &Task::SelectSingle;
     tasks["select_many"] = &Task::SelectMany;
+
+    for (auto& [name, _] : tasks) {
+        avg_timings[name] = 0;
+    }
+}
+void Task::SetUp() {
+    pool = std::make_unique<ConnectionPool>(options.connections,
+                                            options.ConnectionString());
 
     SetUpData();
 }
@@ -234,6 +238,18 @@ void Task::Execute() {
     auto t_sel_single = timer.GetMs("select_single_start", "select_single_end");
     auto t_sel_many = timer.GetMs("select_many_start", "select_many_end");
 
+    avg_timings["simple_insert"] += t_simple_insert;
+    avg_timings["update_single_row"] += t_update_single_row;
+    avg_timings["update_many_rows"] += t_update_many_rows;
+    avg_timings["select_for_update_single_row"] += t_sel_for_upd_single;
+    avg_timings["select_for_update_many_rows"] += t_sel_for_upd_many;
+    avg_timings["select_for_update_skip_locked"] += t_sel_for_upd_skip;
+    avg_timings["select_for_update_skip_locked_many"] +=
+        t_sel_for_upd_skip_many;
+    avg_timings["select_for_update_with_fk"] += t_sel_for_upd_with_fk;
+    avg_timings["select_single"] += t_sel_single;
+    avg_timings["select_many"] += t_sel_many;
+
     std::cout << "\n";
 
     std::cout << "Simple insert time: " << t_simple_insert << " ms"
@@ -257,5 +273,14 @@ void Task::Execute() {
               << " ms" << std::endl;
     std::cout << "Select single row: " << t_sel_single << " ms" << std::endl;
     std::cout << "Select many rows: " << t_sel_many << " ms" << std::endl;
+}
+
+void Task::PrintAvgTimings() const {
+    for (auto& [name, value] : tasks) {
+        std::cout << name << ": "
+                  << avg_timings.at(name) /
+                         static_cast<double>(options.repetitions)
+                  << std::endl;
+    }
 }
 }  // namespace txn
