@@ -10,7 +10,8 @@ drop table if exists B;
 create table B
 (
     id int,
-    value int
+    value int,
+    notes text
 );
 
 
