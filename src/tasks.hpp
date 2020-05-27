@@ -33,7 +33,7 @@ struct Task {
     void SimpleInsert(std::shared_ptr<pqxx::connection> conn);
 
     void UpdateSingleRow(std::shared_ptr<pqxx::connection> conn);
-    void UpdateManyRows(std::shared_ptr<pqxx::connection> conn);
+    void UpdateRandomRow(std::shared_ptr<pqxx::connection> conn);
 
     void SelectForUpdateSingleRow(std::shared_ptr<pqxx::connection> conn);
     void SelectForUpdateManyRows(std::shared_ptr<pqxx::connection> conn);
@@ -46,8 +46,13 @@ struct Task {
 
     void SetUpData();
 
+    // This defines what transaction isolation level each test will use.
+    // Available options are:
+    // - read_committed
+    // - repeatable_read
+    // - serializable
     const static pqxx::isolation_level isolation =
-        pqxx::isolation_level::read_committed;
+        pqxx::isolation_level::serializable;
 
     std::unique_ptr<ConnectionPool> pool;
 

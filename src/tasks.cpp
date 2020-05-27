@@ -89,7 +89,7 @@ void Task::SelectForUpdateWithFK(std::shared_ptr<pqxx::connection> conn) {
 }
 void Task::SelectSingle(std::shared_ptr<pqxx::connection> conn) {
     pqxx::transaction<isolation> db(*conn);
-    db.exec("select value from B where id = 1;");
+    db.exec("select value from b where id = 1;");
     db.commit();
 
     pool->ReturnConnection(conn);
@@ -97,13 +97,13 @@ void Task::SelectSingle(std::shared_ptr<pqxx::connection> conn) {
 
 void Task::SelectMany(std::shared_ptr<pqxx::connection> conn) {
     pqxx::transaction<isolation> db(*conn);
-    db.exec("select value from B where id = 1;");
+    db.exec("select id from a;");
     db.commit();
 
     pool->ReturnConnection(conn);
 }
 
-void Task::UpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
+void Task::UpdateRandomRow(std::shared_ptr<pqxx::connection> conn) {
     const int random = rand() % options.number_of_rows;
 
     char query[100];
@@ -122,7 +122,7 @@ void Task::UpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
         } catch (const pqxx::serialization_failure&) {
             continue;
         } catch (const pqxx::failure& e) {
-            std::cout << "update_many_rows fail" << e.what() << std::endl;
+            std::cout << "update_random_row fail" << e.what() << std::endl;
             db.abort();
             break;
         }
@@ -134,7 +134,7 @@ void Task::UpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
 Task::Task(const Options& options) : options(options) {
     tasks["simple_insert"] = &Task::SimpleInsert;
     tasks["update_single_row"] = &Task::UpdateSingleRow;
-    tasks["update_many_rows"] = &Task::UpdateManyRows;
+    tasks["update_random_row"] = &Task::UpdateRandomRow;
     tasks["select_for_update_single_row"] = &Task::SelectForUpdateSingleRow;
     tasks["select_for_update_many_rows"] = &Task::SelectForUpdateManyRows;
     tasks["select_for_update_skip_locked"] = &Task::SelectForUpdateSkipLocked;
@@ -221,8 +221,8 @@ void Task::Execute() {
         timer.GetMs("simple_insert_start", "simple_insert_end");
     auto t_update_single_row =
         timer.GetMs("update_single_row_start", "update_single_row_end");
-    auto t_update_many_rows =
-        timer.GetMs("update_many_rows_start", "update_many_rows_end");
+    auto t_update_random_row =
+        timer.GetMs("update_random_row_start", "update_random_row_end");
     auto t_sel_for_upd_single =
         timer.GetMs("select_for_update_single_row_start",
                     "select_for_update_single_row_end");
@@ -240,7 +240,7 @@ void Task::Execute() {
 
     avg_timings["simple_insert"] += t_simple_insert;
     avg_timings["update_single_row"] += t_update_single_row;
-    avg_timings["update_many_rows"] += t_update_many_rows;
+    avg_timings["update_random_row"] += t_update_random_row;
     avg_timings["select_for_update_single_row"] += t_sel_for_upd_single;
     avg_timings["select_for_update_many_rows"] += t_sel_for_upd_many;
     avg_timings["select_for_update_skip_locked"] += t_sel_for_upd_skip;
@@ -258,7 +258,7 @@ void Task::Execute() {
     std::cout << "Single row update time: " << t_update_single_row << " ms"
               << std::endl;
 
-    std::cout << "Many rows update time: " << t_update_many_rows << " ms"
+    std::cout << "Random row update time: " << t_update_random_row << " ms"
               << std::endl;
 
     std::cout << "Select for update single row: " << t_sel_for_upd_single
