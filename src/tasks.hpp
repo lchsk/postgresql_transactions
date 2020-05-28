@@ -53,7 +53,7 @@ struct Task {
     // - repeatable_read
     // - serializable
     const static pqxx::isolation_level isolation =
-        pqxx::isolation_level::serializable;
+        pqxx::isolation_level::read_committed;
 
     std::unique_ptr<ConnectionPool> pool;
 
