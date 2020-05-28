@@ -2,7 +2,7 @@ CC = g++
 BIN = txn
 
 CFLAGS += -std=c++17 -pedantic -O0 -g
-LIBS = `pkg-config libpqxx --cflags` -pthread -lpqxx -lpq
+LIBS = `pkg-config libpqxx --cflags --libs` -pthread -lpqxx -lpq
 
 SRCDIR = src
 SRC = \
