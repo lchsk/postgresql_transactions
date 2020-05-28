@@ -21,7 +21,7 @@ To gather benchmarks it's useful to run it with `--repetitions [n]` which will r
 
 ## Isolation levels
 
-The transaction isolation level used in tests must be changed in the source code (`src/tasks.hpp` - `isolation` variable). Available options include: `read_committed`, `repeatable_read`, and `serializable`.
+The transaction isolation level used in tests must be changed in the source code (`src/tasks.hpp` - `isolation` constant). Available options include: `read_committed`, `repeatable_read`, and `serializable`.
 
 ## Compilation
 
