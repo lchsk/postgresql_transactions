@@ -25,7 +25,8 @@ The transaction isolation level used in tests must be changed in the source code
 
 ## Compilation
 
-Make sure you have `pqxx` installed (https://github.com/jtv/libpqxx), I've tested it with version 7.07.
+It needs `pqxx` to talk to Postgres, make sure it's installed (https://github.com/jtv/libpqxx), I've tested it with version 7.07.
+
 You also need a compiler supporting at least C++17, I've tested it with gcc 10.
 
 Run `make` in the main directory. That should give you a binary in `./bin/txn`.
