@@ -40,6 +40,7 @@ struct Task {
     void SelectForUpdateSkipLocked(std::shared_ptr<pqxx::connection> conn);
     void SelectForUpdateSkipLockedMany(std::shared_ptr<pqxx::connection> conn);
     void SelectForUpdateWithFK(std::shared_ptr<pqxx::connection> conn);
+    void SelectForUpdateAllFK(std::shared_ptr<pqxx::connection> conn);
 
     void SelectSingle(std::shared_ptr<pqxx::connection> conn);
     void SelectMany(std::shared_ptr<pqxx::connection> conn);

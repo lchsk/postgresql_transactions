@@ -69,6 +69,15 @@ void Task::SelectForUpdateManyRows(std::shared_ptr<pqxx::connection> conn) {
 
     pool->ReturnConnection(conn);
 }
+
+void Task::SelectForUpdateAllFK(std::shared_ptr<pqxx::connection> conn) {
+    pqxx::transaction<isolation> db(*conn);
+    db.exec("select * from E for update;");
+    db.commit();
+
+    pool->ReturnConnection(conn);
+}
+
 void Task::SelectForUpdateWithFK(std::shared_ptr<pqxx::connection> conn) {
     const int random = rand() % 2;
 
@@ -87,6 +96,7 @@ void Task::SelectForUpdateWithFK(std::shared_ptr<pqxx::connection> conn) {
 
     pool->ReturnConnection(conn);
 }
+
 void Task::SelectSingle(std::shared_ptr<pqxx::connection> conn) {
     pqxx::transaction<isolation> db(*conn);
     db.exec("select value from b where id = 1;");
@@ -141,6 +151,7 @@ Task::Task(const Options& options) : options(options) {
     tasks["select_for_update_skip_locked_many"] =
         &Task::SelectForUpdateSkipLockedMany;
     tasks["select_for_update_with_fk"] = &Task::SelectForUpdateWithFK;
+    tasks["select_for_update_all_fk"] = &Task::SelectForUpdateAllFK;
     tasks["select_single"] = &Task::SelectSingle;
     tasks["select_many"] = &Task::SelectMany;
 
@@ -235,6 +246,8 @@ void Task::Execute() {
                     "select_for_update_skip_locked_many_end");
     auto t_sel_for_upd_with_fk = timer.GetMs("select_for_update_with_fk_start",
                                              "select_for_update_with_fk_end");
+    auto t_sel_for_upd_all_fk = timer.GetMs("select_for_update_all_fk_start",
+                                            "select_for_update_all_fk_end");
     auto t_sel_single = timer.GetMs("select_single_start", "select_single_end");
     auto t_sel_many = timer.GetMs("select_many_start", "select_many_end");
 
@@ -247,6 +260,7 @@ void Task::Execute() {
     avg_timings["select_for_update_skip_locked_many"] +=
         t_sel_for_upd_skip_many;
     avg_timings["select_for_update_with_fk"] += t_sel_for_upd_with_fk;
+    avg_timings["select_for_update_all_fk"] += t_sel_for_upd_all_fk;
     avg_timings["select_single"] += t_sel_single;
     avg_timings["select_many"] += t_sel_many;
 
@@ -269,8 +283,10 @@ void Task::Execute() {
               << " ms" << std::endl;
     std::cout << "Select for update many rows skip locked: "
               << t_sel_for_upd_skip_many << " ms" << std::endl;
-    std::cout << "Select for update with foreign key: " << t_sel_for_upd_with_fk
-              << " ms" << std::endl;
+    std::cout << "Select for update (50%) with foreign key: "
+              << t_sel_for_upd_with_fk << " ms" << std::endl;
+    std::cout << "Select for update (all) with foreign key: "
+              << t_sel_for_upd_all_fk << " ms" << std::endl;
     std::cout << "Select single row: " << t_sel_single << " ms" << std::endl;
     std::cout << "Select many rows: " << t_sel_many << " ms" << std::endl;
 }
