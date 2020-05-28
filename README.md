@@ -1,10 +1,15 @@
 # PostgreSQL concurrent transactions benchmark
 
-Corresponding blog article: 
-
 Benchmark a number of different operations in Postgres. It simulates a concurrent environment with different transaction isolation levels.
 
-It's written with C++ and user pqxx library to connect to Postgres. It requires C++17 compiler (tested with gcc 10). It's been tested with PostgreSQL 12.3.
+- Article describing the results of this benchmark: https://lchsk.com/benchmarking-concurrent-operations-in-postgresql.html
+
+- Context about transactions and concurrent behavior in PostgreSQL: https://lchsk.com/database-transactions-concurrency-isolation-levels-and-postgresql.html
+
+
+## Application
+
+It's written in C++ and user pqxx library to connect to Postgres. It requires C++17 compiler (tested with gcc 10). It's been tested with PostgreSQL 12.3.
 
 It has a number of parameters to change its behavior. You can run it with `--help` options to see them all.
 
