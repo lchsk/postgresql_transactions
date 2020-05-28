@@ -207,6 +207,10 @@ void Task::Execute() {
     std::vector<std::thread> threads(options.threads);
 
     for (auto& [name, func] : tasks) {
+        if (name != options.task) {
+            continue;
+        }
+
         std::cout << "Running " << name << std::endl;
         timer.Record(name + "_start");
 
