@@ -17,15 +17,15 @@ void Task::SimpleInsert(std::shared_ptr<pqxx::connection> conn) {
 void Task::UpdateSingleRow(std::shared_ptr<pqxx::connection> conn) {
     // Retry transaction if it fails due to serialization failures
     // at higher isolation levels.
-    const int attempts = 5;
 
-    for (int i = 0; i < attempts; i++) {
+    while (true) {
         pqxx::transaction<isolation> db(*conn);
         try {
             db.exec("update B set value = value + 1 where id = 1");
             db.commit();
             break;
         } catch (const pqxx::serialization_failure&) {
+            db.abort();
             continue;
         } catch (const pqxx::failure& e) {
             std::cout << "update_single_row fail" << e.what() << std::endl;
@@ -121,15 +121,15 @@ void Task::UpdateRandomRow(std::shared_ptr<pqxx::connection> conn) {
 
     // Retry transaction if it fails due to serialization failures
     // at higher isolation levels.
-    const int attempts = 5;
 
-    for (int i = 0; i < attempts; i++) {
+    while (true) {
         pqxx::transaction<isolation> db(*conn);
         try {
             db.exec(query);
             db.commit();
             break;
         } catch (const pqxx::serialization_failure&) {
+            db.abort();
             continue;
         } catch (const pqxx::failure& e) {
             std::cout << "update_random_row fail" << e.what() << std::endl;
