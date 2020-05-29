@@ -10,6 +10,7 @@ Options::Options()
       pass("txn"),
       port("1234"),
       db("txn_db"),
+      task(""),
       connections(10),
       threads(100),
       repetitions(1),

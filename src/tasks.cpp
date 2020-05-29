@@ -207,7 +207,7 @@ void Task::Execute() {
     std::vector<std::thread> threads(options.threads);
 
     for (auto& [name, func] : tasks) {
-        if (name != options.task) {
+        if (options.task != "" && name != options.task) {
             continue;
         }
 
